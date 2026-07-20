@@ -29,7 +29,7 @@ const STORAGE_KEY = "drive-save-state";
 const IMAGE_PREFIX = "image/";
 const VIDEO_PREFIX = "video/";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
-const DEFAULT_CLIENT_ID = "1001713877115-pta21pfjl7ns3tv8km5k6bpblkh1ncio.apps.googleusercontent.com";
+const DEFAULT_CLIENT_ID = "1001713877115-or3ne8osm3hcc2rnh3hfjavtrsv6c0pg.apps.googleusercontent.com";
 
 let currentPayload = null;
 let driveFiles = [];
