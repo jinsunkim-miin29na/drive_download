@@ -45,19 +45,20 @@
         </label>
 
         <label class="field">
-          <span>Google Drive API key</span>
-          <input id="apiKey" type="password" placeholder="공개 폴더 목록 확인용 API key" autocomplete="off" />
+          <span>Google OAuth Client ID</span>
+          <input id="clientId" type="text" placeholder="Google 로그인용 Web client ID" autocomplete="off" />
         </label>
 
         <div class="actions three">
-          <button class="primary" id="scanButton" type="button">Drive 확인</button>
+          <button class="primary" id="loginButton" type="button">Google 로그인</button>
+          <button class="secondary" id="scanButton" type="button">Drive 확인</button>
           <button class="secondary" id="prepareButton" type="button">정보 만들기</button>
-          <button class="secondary" id="clearButton" type="button">지우기</button>
         </div>
+        <button class="secondary full-width" id="clearButton" type="button">지우기</button>
       </section>
 
       <section class="status-strip" id="statusStrip" aria-live="polite">
-        Drive 폴더를 확인하려면 공유 주소, 앨범 이름, API key를 넣어주세요.
+        Drive 폴더를 확인하려면 공유 주소, 앨범 이름, OAuth Client ID를 넣고 Google 로그인을 해주세요.
       </section>
 
       <section class="panel summary-panel" aria-labelledby="summary-title">
@@ -118,16 +119,17 @@
         <h2 id="shortcut-title">단축어가 해야 할 일</h2>
         <ol>
           <li>`Drive Album Save` 단축어가 입력 JSON의 `files` 목록을 반복합니다.</li>
-          <li>각 파일의 `downloadUrl`을 가져와 사진 앱에 저장하고 `albumName` 앨범에 추가합니다.</li>
+          <li>각 파일의 `downloadUrl`을 `Authorization` 헤더와 함께 가져와 사진 앱에 저장하고 `albumName` 앨범에 추가합니다.</li>
           <li>성공한 파일 수를 세고, 마지막에 웹페이지 콜백 주소를 열면 자동 비교됩니다.</li>
         </ol>
         <p>
-          공유 폴더가 비공개이거나 회사 계정 로그인으로만 보이면 API key만으로는 목록 확인이 안 됩니다.
-          그 경우에는 Google OAuth 또는 별도 서버가 필요합니다.
+          로그인한 Google 계정이 접근할 수 없는 공유 폴더는 조회할 수 없습니다.
+          회사 보안 정책에 따라 외부 웹앱의 Drive 읽기 권한 승인이 막힐 수도 있습니다.
         </p>
       </section>
     </main>
 
-    <script src="app.js?v=5"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="app.js?v=6"></script>
   </body>
 </html>

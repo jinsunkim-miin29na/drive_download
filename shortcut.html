@@ -41,7 +41,8 @@
           <li>`숫자` 액션을 추가하고 값을 `0`으로 둔 뒤 변수 `Saved Count`에 저장합니다.</li>
           <li>`반복` 액션을 추가하고 대상은 `Files`로 둡니다.</li>
           <li>반복 안에서 `사전 값 가져오기`로 `downloadUrl`을 꺼냅니다.</li>
-          <li>`URL 콘텐츠 가져오기` 액션으로 `downloadUrl`을 다운로드합니다.</li>
+          <li>입력 JSON에서 `authorizationHeader`를 꺼냅니다.</li>
+          <li>`URL 콘텐츠 가져오기` 액션으로 `downloadUrl`을 다운로드하고, 요청 헤더에 `Authorization` 값을 추가합니다.</li>
           <li>`사진 앨범에 저장` 액션으로 다운로드 결과를 `Album Name` 앨범에 저장합니다.</li>
           <li>저장이 끝나면 `계산` 또는 `숫자` 액션으로 `Saved Count + 1`을 만들어 `Saved Count`에 다시 저장합니다.</li>
           <li>반복이 끝난 뒤 `텍스트 바꾸기`로 `Callback URL` 안의 `{SAVED_COUNT}`를 `Saved Count`로 바꿉니다.</li>
@@ -57,6 +58,7 @@
           <button class="secondary copy-mini" data-copy="expectedCount" type="button">expectedCount</button>
           <button class="secondary copy-mini" data-copy="callbackUrl" type="button">callbackUrl</button>
           <button class="secondary copy-mini" data-copy="downloadUrl" type="button">downloadUrl</button>
+          <button class="secondary copy-mini" data-copy="authorizationHeader" type="button">authorizationHeader</button>
           <button class="secondary copy-mini" data-copy="{SAVED_COUNT}" type="button">{SAVED_COUNT}</button>
         </div>
       </section>
@@ -68,7 +70,7 @@
           이 경우 웹페이지의 앨범 이름은 비교 표시용으로만 쓰입니다.
         </p>
         <p class="compare-result">
-          Google Drive 다운로드가 권한 오류로 실패하면 공유 폴더가 공개가 아니거나 API key 방식으로 접근할 수 없는 폴더입니다.
+          Google Drive 다운로드가 권한 오류로 실패하면 로그인한 Google 계정이 해당 공유 폴더에 접근할 수 없는 상태입니다.
         </p>
       </section>
 

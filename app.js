@@ -1,8 +1,9 @@
 const els = {
   driveLink: document.querySelector("#driveLink"),
   albumName: document.querySelector("#albumName"),
-  apiKey: document.querySelector("#apiKey"),
+  clientId: document.querySelector("#clientId"),
   pasteButton: document.querySelector("#pasteButton"),
+  loginButton: document.querySelector("#loginButton"),
   scanButton: document.querySelector("#scanButton"),
   prepareButton: document.querySelector("#prepareButton"),
   clearButton: document.querySelector("#clearButton"),
@@ -27,10 +28,13 @@ const SHORTCUT_NAME = "Drive Album Save";
 const STORAGE_KEY = "drive-save-state";
 const IMAGE_PREFIX = "image/";
 const VIDEO_PREFIX = "video/";
+const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
 
 let currentPayload = null;
 let driveFiles = [];
 let driveInfo = null;
+let accessToken = "";
+let tokenClient = null;
 
 function extractDriveInfo(rawText) {
   const text = rawText.trim();
@@ -90,7 +94,7 @@ function saveState() {
   const state = {
     driveLink: els.driveLink.value,
     albumName: els.albumName.value,
-    apiKey: els.apiKey.value,
+    clientId: els.clientId.value,
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
@@ -103,7 +107,7 @@ function restoreState() {
     const state = JSON.parse(saved);
     els.driveLink.value = state.driveLink || "";
     els.albumName.value = state.albumName || "";
-    els.apiKey.value = state.apiKey || "";
+    els.clientId.value = state.clientId || "";
   } catch {
     localStorage.removeItem(STORAGE_KEY);
   }
@@ -166,18 +170,81 @@ function mediaFileFromDrive(file) {
     name: file.name,
     mimeType: file.mimeType,
     kind: file.mimeType?.startsWith(IMAGE_PREFIX) ? "image" : "video",
-    downloadUrl: `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media&key=${encodeURIComponent(els.apiKey.value.trim())}`,
+    downloadUrl: `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`,
+    authorizationHeader: "Bearer {ACCESS_TOKEN}",
     webViewLink: file.webViewLink,
   };
 }
 
-async function fetchDriveFolderFiles(folderId, apiKey) {
+function waitForGoogleIdentity() {
+  return new Promise((resolve, reject) => {
+    if (window.google?.accounts?.oauth2) {
+      resolve();
+      return;
+    }
+
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => {
+      if (window.google?.accounts?.oauth2) {
+        window.clearInterval(timer);
+        resolve();
+        return;
+      }
+
+      if (Date.now() - startedAt > 8000) {
+        window.clearInterval(timer);
+        reject(new Error("Google 로그인 라이브러리를 불러오지 못했습니다."));
+      }
+    }, 100);
+  });
+}
+
+async function ensureAccessToken(prompt = "") {
+  const clientId = els.clientId.value.trim();
+  if (!clientId) {
+    throw new Error("Google OAuth Client ID를 입력해주세요.");
+  }
+
+  await waitForGoogleIdentity();
+
+  return new Promise((resolve, reject) => {
+    tokenClient = window.google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: DRIVE_SCOPE,
+      prompt,
+      callback: (response) => {
+        if (response.error) {
+          reject(new Error(response.error_description || response.error));
+          return;
+        }
+
+        accessToken = response.access_token;
+        els.loginButton.textContent = "로그인됨";
+        setStatus("Google Drive 읽기 권한을 받았습니다.");
+        resolve(accessToken);
+      },
+    });
+
+    tokenClient.requestAccessToken({ prompt });
+  });
+}
+
+async function loginGoogle() {
+  saveState();
+  try {
+    await ensureAccessToken("consent");
+  } catch (error) {
+    setStatus(`Google 로그인 실패: ${error.message}`, true);
+  }
+}
+
+async function fetchDriveFolderFiles(folderId) {
   const files = [];
   let pageToken = "";
+  const token = accessToken || await ensureAccessToken("");
 
   do {
     const params = new URLSearchParams({
-      key: apiKey,
       q: `'${folderId}' in parents and trashed = false`,
       fields: "nextPageToken,files(id,name,mimeType,size,webViewLink)",
       pageSize: "1000",
@@ -186,7 +253,11 @@ async function fetchDriveFolderFiles(folderId, apiKey) {
     });
     if (pageToken) params.set("pageToken", pageToken);
 
-    const response = await fetch(`https://www.googleapis.com/drive/v3/files?${params.toString()}`);
+    const response = await fetch(`https://www.googleapis.com/drive/v3/files?${params.toString()}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     if (!response.ok) {
       const errorBody = await response.json().catch(() => ({}));
       const message = errorBody?.error?.message || `Drive API 오류 ${response.status}`;
@@ -242,17 +313,11 @@ async function scanDrive() {
     return;
   }
 
-  const apiKey = els.apiKey.value.trim();
-  if (!apiKey) {
-    setStatus("폴더 안 파일 개수를 확인하려면 Google Drive API key가 필요합니다.", true);
-    return;
-  }
-
   setBusy(true);
   setStatus("Drive 폴더에서 사진/동영상 목록을 확인하는 중입니다.");
 
   try {
-    driveFiles = await fetchDriveFolderFiles(driveInfo.id, apiKey);
+    driveFiles = await fetchDriveFolderFiles(driveInfo.id);
     renderFiles(driveFiles);
     const summary = summarizeFiles(driveFiles);
     setStatus(`Drive 폴더에서 사진 ${summary.imageCount}개, 동영상 ${summary.videoCount}개를 찾았습니다.`);
@@ -284,6 +349,7 @@ function buildPayload() {
       mimeType: "application/octet-stream",
       kind: "file",
       downloadUrl: driveInfo.openUrl,
+      authorizationHeader: accessToken ? "Bearer {ACCESS_TOKEN}" : "",
       webViewLink: driveInfo.url,
     }];
   }
@@ -304,6 +370,8 @@ function buildPayload() {
     expectedCount,
     mediaSummary: summary,
     files: driveFiles,
+    accessToken,
+    authorizationHeader: accessToken ? `Bearer ${accessToken}` : "",
     callbackUrl: makeCallbackUrl(expectedCount, albumName),
     createdAt: new Date().toISOString(),
   };
@@ -347,7 +415,7 @@ function prepare() {
 
   updatePayload(payload);
   if (payload.type === "folder" && payload.expectedCount === 0) {
-    setStatus("payload는 만들었지만 Drive에서 사진/동영상을 찾지 못했습니다. 공유 권한과 API key를 확인해주세요.", true);
+    setStatus("payload는 만들었지만 Drive에서 사진/동영상을 찾지 못했습니다. 공유 권한과 로그인 계정을 확인해주세요.", true);
     return;
   }
 
@@ -436,18 +504,22 @@ function applyCallbackParams() {
 function clearAll() {
   els.driveLink.value = "";
   els.albumName.value = "";
-  els.apiKey.value = "";
+  els.clientId.value = "";
   els.savedCount.value = "";
   driveFiles = [];
   driveInfo = null;
+  accessToken = "";
+  tokenClient = null;
+  els.loginButton.textContent = "Google 로그인";
   els.linkType.textContent = "대기";
   renderFiles([]);
   updatePayload(null);
   localStorage.removeItem(STORAGE_KEY);
-  setStatus("Drive 폴더를 확인하려면 공유 주소, 앨범 이름, API key를 넣어주세요.");
+  setStatus("Drive 폴더를 확인하려면 공유 주소, 앨범 이름, OAuth Client ID를 넣고 Google 로그인을 해주세요.");
   els.compareResult.textContent = "Drive 확인 후 성공 개수를 입력하면 차이를 계산합니다.";
 }
 
+els.loginButton.addEventListener("click", loginGoogle);
 els.scanButton.addEventListener("click", scanDrive);
 els.prepareButton.addEventListener("click", prepare);
 els.pasteButton.addEventListener("click", pasteFromClipboard);
@@ -458,7 +530,7 @@ els.compareButton.addEventListener("click", compareCounts);
 els.clearButton.addEventListener("click", clearAll);
 els.driveLink.addEventListener("input", saveState);
 els.albumName.addEventListener("input", saveState);
-els.apiKey.addEventListener("input", saveState);
+els.clientId.addEventListener("input", saveState);
 
 restoreState();
 applyCallbackParams();
