@@ -336,6 +336,32 @@ pre {
   line-height: 1.55;
 }
 
+.shortcut-steps ol {
+  padding-left: 22px;
+  line-height: 1.58;
+}
+
+.shortcut-steps li {
+  margin: 8px 0;
+}
+
+.copy-mini {
+  min-height: 38px;
+  padding: 0 12px;
+  font-size: 0.86rem;
+}
+
+.key-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.bottom-nav {
+  margin-top: 14px;
+}
+
 .compare-result {
   margin: 12px 0 0;
   color: var(--muted);

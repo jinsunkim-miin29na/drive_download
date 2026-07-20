@@ -46,6 +46,8 @@ iPhone Safari에서 Google Drive 공유 링크를 확인하고, iOS 단축어로
 
 ## 단축어 구성 기준
 
+웹앱의 `단축어 만들기` 화면에 아이폰용 액션 순서를 넣어두었습니다.
+
 1. 단축어 이름을 `Drive Album Save`로 만듭니다.
 2. 텍스트 입력으로 JSON을 받습니다.
 3. JSON의 `files`를 반복합니다.
