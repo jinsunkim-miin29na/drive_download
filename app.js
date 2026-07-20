@@ -95,7 +95,6 @@ function saveState() {
   const state = {
     driveLink: els.driveLink.value,
     albumName: els.albumName.value,
-    clientId: els.clientId.value,
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
@@ -111,7 +110,7 @@ function restoreState() {
     const state = JSON.parse(saved);
     els.driveLink.value = state.driveLink || "";
     els.albumName.value = state.albumName || "";
-    els.clientId.value = state.clientId || DEFAULT_CLIENT_ID;
+    els.clientId.value = DEFAULT_CLIENT_ID;
   } catch {
     localStorage.removeItem(STORAGE_KEY);
     els.clientId.value = DEFAULT_CLIENT_ID;
