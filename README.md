@@ -7,7 +7,7 @@
 1. GitHub Pages로 배포된 웹페이지를 iPhone Safari에서 엽니다.
 2. `단축어 만들기`에서 `Drive Album Save` 단축어를 아이폰에 한 번 만듭니다.
 3. 메인 화면에서 Google Drive 공유 URL과 앨범 이름을 입력합니다.
-4. Google OAuth Client ID를 입력하고 Google 로그인을 합니다.
+4. 기본 입력된 Google OAuth Client ID로 Google 로그인을 합니다.
 5. `Drive 확인`으로 사진/동영상 개수를 확인합니다.
 6. `단축어 실행`을 눌러 아이폰 사진 앱 앨범에 저장합니다.
 7. 단축어가 끝나면 저장 성공 개수를 Drive 기준 개수와 비교합니다.

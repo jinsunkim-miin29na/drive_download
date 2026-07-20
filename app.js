@@ -29,6 +29,7 @@ const STORAGE_KEY = "drive-save-state";
 const IMAGE_PREFIX = "image/";
 const VIDEO_PREFIX = "video/";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
+const DEFAULT_CLIENT_ID = "1001713877115-pta21pfjl7ns3tv8km5k6bpblkh1ncio.apps.googleusercontent.com";
 
 let currentPayload = null;
 let driveFiles = [];
@@ -101,15 +102,19 @@ function saveState() {
 
 function restoreState() {
   const saved = localStorage.getItem(STORAGE_KEY);
-  if (!saved) return;
+  if (!saved) {
+    els.clientId.value = DEFAULT_CLIENT_ID;
+    return;
+  }
 
   try {
     const state = JSON.parse(saved);
     els.driveLink.value = state.driveLink || "";
     els.albumName.value = state.albumName || "";
-    els.clientId.value = state.clientId || "";
+    els.clientId.value = state.clientId || DEFAULT_CLIENT_ID;
   } catch {
     localStorage.removeItem(STORAGE_KEY);
+    els.clientId.value = DEFAULT_CLIENT_ID;
   }
 }
 
@@ -504,7 +509,7 @@ function applyCallbackParams() {
 function clearAll() {
   els.driveLink.value = "";
   els.albumName.value = "";
-  els.clientId.value = "";
+  els.clientId.value = DEFAULT_CLIENT_ID;
   els.savedCount.value = "";
   driveFiles = [];
   driveInfo = null;
