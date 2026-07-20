@@ -1,16 +1,22 @@
 # Drive Save
 
-iPhone Safari에서 Google Drive 공유 링크를 확인하고, iOS 단축어로 사진/동영상 다운로드 목록을 넘기는 정적 웹앱입니다.
+빌드 없이 iPhone Safari와 iOS 단축어만으로 Google Drive 사진/동영상을 사진 앱 앨범에 저장하기 위한 정적 웹앱입니다.
 
-## 완전 자동 저장이 필요하면
+## 핵심 구조
 
-웹페이지와 단축어만으로는 iOS 사진 앱에 조용히 일괄 저장하는 데 한계가 있습니다. 그래서 네이티브 iOS 앱 소스를 추가했습니다.
+웹페이지는 Drive 폴더를 확인하고 단축어에 넘길 다운로드 목록을 만듭니다. iOS 사진 앱 저장은 단축어 앱이 처리합니다.
 
 ```text
-ios/DriveAlbumSaver/DriveAlbumSaver.xcodeproj
+Safari 웹페이지
+→ Google 로그인
+→ Drive 폴더 사진/동영상 개수 확인
+→ Drive Album Save 단축어 실행
+→ 단축어가 다운로드
+→ 사진 앱 앨범에 저장
+→ 성공 개수 비교
 ```
 
-이 앱은 Google 로그인, Drive 폴더 스캔, 사진/동영상 다운로드, 사진 앱 앨범 저장, 저장 개수 비교를 직접 처리합니다.
+웹페이지 단독으로 사진 앱 앨범에 저장하는 것은 iOS 권한 정책 때문에 불가능합니다. 빌드 없이 가능한 최종 형태는 이 웹앱 + 단축어 조합입니다.
 
 ## 현재 지원하는 흐름
 
@@ -27,7 +33,7 @@ ios/DriveAlbumSaver/DriveAlbumSaver.xcodeproj
 
 공유 폴더에 접근할 수 있는 Google 계정으로 로그인해야 합니다. 회사 보안 정책에 따라 외부 웹앱의 Drive 읽기 권한 승인이 막힐 수도 있습니다.
 
-정적 웹페이지에서 Google 로그인을 띄우려면 Google OAuth Web Client ID가 필요합니다. Google Cloud Console에서 Drive API를 사용 설정하고 OAuth 클라이언트 ID를 만든 뒤, GitHub Pages 주소를 Authorized JavaScript origins에 추가하세요.
+정적 웹페이지에서 Google 로그인을 띄우려면 Google OAuth Web Client ID가 필요합니다. Google Cloud Console에서 Drive API를 사용 설정하고 OAuth 클라이언트 ID를 만든 뒤, GitHub Pages 주소를 Authorized JavaScript origins에 추가하세요. 이건 앱 빌드가 아니라 웹 로그인 설정입니다.
 
 ## 단축어 입력 예시
 
@@ -61,7 +67,7 @@ ios/DriveAlbumSaver/DriveAlbumSaver.xcodeproj
 
 ## 단축어 구성 기준
 
-웹앱의 `단축어 만들기` 화면에 아이폰용 액션 순서를 넣어두었습니다.
+웹앱의 `단축어 만들기` 화면에 아이폰용 액션 순서를 넣어두었습니다. 단축어는 아이폰에서 한 번만 만들면 됩니다.
 
 1. 단축어 이름을 `Drive Album Save`로 만듭니다.
 2. 텍스트 입력으로 JSON을 받습니다.
