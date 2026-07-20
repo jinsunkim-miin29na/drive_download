@@ -459,18 +459,27 @@ function runShortcut() {
   if (!currentPayload) return;
 
   const payloadText = JSON.stringify(currentPayload);
-  const shortcutUrl = new URL("shortcuts://run-shortcut");
-  shortcutUrl.searchParams.set("name", SHORTCUT_NAME);
-  shortcutUrl.searchParams.set("input", "text");
-  shortcutUrl.searchParams.set("text", payloadText);
+  const shortcutUrl = buildShortcutUrl("text", payloadText);
 
   if (shortcutUrl.toString().length > 7500) {
-    copyPayload();
-    setStatus("파일 목록이 길어서 먼저 정보를 복사했습니다. 단축어에서 클립보드 내용을 입력으로 사용해주세요.");
+    copyText(payloadText, "파일 목록이 길어서 정보를 클립보드에 복사했습니다. 단축어를 클립보드 입력으로 실행합니다.");
+    window.setTimeout(() => {
+      window.location.href = buildShortcutUrl("clipboard").toString();
+    }, 350);
     return;
   }
 
   window.location.href = shortcutUrl.toString();
+}
+
+function buildShortcutUrl(input, text = "") {
+  const shortcutUrl = new URL("shortcuts://run-shortcut");
+  shortcutUrl.searchParams.set("name", SHORTCUT_NAME);
+  shortcutUrl.searchParams.set("input", input);
+  if (input === "text") {
+    shortcutUrl.searchParams.set("text", text);
+  }
+  return shortcutUrl;
 }
 
 function compareCounts() {
