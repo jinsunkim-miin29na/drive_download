@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f7f4ec" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Drive Album" />
+    <title>Drive Album Helper</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero">
+        <p class="eyebrow">iPhone helper</p>
+        <h1>Drive 저장</h1>
+        <p class="summary">
+          Google Drive 공유 링크와 앨범 이름을 준비해서 iOS 단축어로 전달합니다.
+          웹에서 직접 사진 앱 앨범을 만들 수 없기 때문에 마지막 저장 단계는 단축어가 처리합니다.
+        </p>
+      </section>
+
+      <section class="panel composer" aria-labelledby="compose-title">
+        <div class="section-heading">
+          <h2 id="compose-title">가져올 항목</h2>
+          <button class="icon-button" id="pasteButton" type="button" aria-label="클립보드에서 붙여넣기">
+            <span aria-hidden="true">+</span>
+          </button>
+        </div>
+
+        <label class="field">
+          <span>Google Drive 공유 주소</span>
+          <textarea
+            id="driveLink"
+            rows="5"
+            placeholder="https://drive.google.com/file/d/... 또는 https://drive.google.com/drive/folders/..."
+            autocomplete="off"
+          ></textarea>
+        </label>
+
+        <label class="field">
+          <span>저장할 앨범 이름</span>
+          <input id="albumName" type="text" placeholder="예: 2026 여름 여행" autocomplete="off" />
+        </label>
+
+        <div class="actions">
+          <button class="primary" id="prepareButton" type="button">준비하기</button>
+          <button class="secondary" id="clearButton" type="button">지우기</button>
+        </div>
+      </section>
+
+      <section class="status-strip" id="statusStrip" aria-live="polite">
+        링크를 넣으면 가능한 저장 방법을 확인합니다.
+      </section>
+
+      <section class="panel result" aria-labelledby="result-title">
+        <div class="section-heading">
+          <h2 id="result-title">실행</h2>
+          <span class="badge" id="linkType">대기</span>
+        </div>
+
+        <div class="button-grid">
+          <button id="shortcutButton" class="primary" type="button" disabled>단축어 실행</button>
+          <button id="copyPayloadButton" class="secondary" type="button" disabled>정보 복사</button>
+          <a id="downloadLink" class="secondary link-button is-disabled" href="#" target="_blank" rel="noreferrer">Drive 열기</a>
+        </div>
+
+        <div class="payload-box">
+          <div class="payload-title">단축어로 넘길 정보</div>
+          <pre id="payloadPreview">{}</pre>
+        </div>
+      </section>
+
+      <section class="panel checklist" aria-labelledby="shortcut-title">
+        <h2 id="shortcut-title">아이폰 단축어 준비</h2>
+        <ol>
+          <li>단축어 앱에서 <strong>Drive Album Save</strong>라는 새 단축어를 만듭니다.</li>
+          <li>입력값을 텍스트로 받고, JSON에서 <strong>albumName</strong>과 <strong>url</strong>을 읽습니다.</li>
+          <li>URL의 파일을 가져온 뒤 사진 앱에 저장하고, 해당 앨범에 추가하도록 구성합니다.</li>
+        </ol>
+        <p>
+          Google Drive 폴더 전체 자동 저장은 공유 권한, 로그인, 파일 수에 따라 막힐 수 있습니다.
+          가장 안정적인 방식은 Drive 폴더를 ZIP으로 받은 뒤 단축어에서 사진/영상을 골라 저장하는 흐름입니다.
+        </p>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
