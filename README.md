@@ -2,6 +2,16 @@
 
 iPhone Safari에서 Google Drive 공유 링크를 확인하고, iOS 단축어로 사진/동영상 다운로드 목록을 넘기는 정적 웹앱입니다.
 
+## 완전 자동 저장이 필요하면
+
+웹페이지와 단축어만으로는 iOS 사진 앱에 조용히 일괄 저장하는 데 한계가 있습니다. 그래서 네이티브 iOS 앱 소스를 추가했습니다.
+
+```text
+ios/DriveAlbumSaver/DriveAlbumSaver.xcodeproj
+```
+
+이 앱은 Google 로그인, Drive 폴더 스캔, 사진/동영상 다운로드, 사진 앱 앨범 저장, 저장 개수 비교를 직접 처리합니다.
+
 ## 현재 지원하는 흐름
 
 1. Google Drive 공유 URL을 입력합니다.
