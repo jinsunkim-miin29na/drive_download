@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f7f4ec" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="Drive Album" />
-    <title>Drive Album Helper</title>
+    <meta name="apple-mobile-web-app-title" content="Drive Save" />
+    <title>Drive Save</title>
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=5" />
   </head>
   <body>
     <main class="app-shell">
@@ -16,8 +16,8 @@
         <p class="eyebrow">iPhone helper</p>
         <h1>Drive 저장</h1>
         <p class="summary">
-          Google Drive 공유 링크와 앨범 이름을 준비해서 iOS 단축어로 전달합니다.
-          웹에서 직접 사진 앱 앨범을 만들 수 없기 때문에 마지막 저장 단계는 단축어가 처리합니다.
+          공유받은 Google Drive 폴더의 사진/동영상 개수를 확인하고, iOS 단축어로
+          다운로드 목록과 앨범 이름을 넘깁니다.
         </p>
       </section>
 
@@ -34,7 +34,7 @@
           <textarea
             id="driveLink"
             rows="5"
-            placeholder="https://drive.google.com/file/d/... 또는 https://drive.google.com/drive/folders/..."
+            placeholder="https://drive.google.com/drive/folders/... 또는 https://drive.google.com/file/d/..."
             autocomplete="off"
           ></textarea>
         </label>
@@ -44,20 +44,48 @@
           <input id="albumName" type="text" placeholder="예: 2026 여름 여행" autocomplete="off" />
         </label>
 
-        <div class="actions">
-          <button class="primary" id="prepareButton" type="button">준비하기</button>
+        <label class="field">
+          <span>Google Drive API key</span>
+          <input id="apiKey" type="password" placeholder="공개 폴더 목록 확인용 API key" autocomplete="off" />
+        </label>
+
+        <div class="actions three">
+          <button class="primary" id="scanButton" type="button">Drive 확인</button>
+          <button class="secondary" id="prepareButton" type="button">정보 만들기</button>
           <button class="secondary" id="clearButton" type="button">지우기</button>
         </div>
       </section>
 
       <section class="status-strip" id="statusStrip" aria-live="polite">
-        링크를 넣으면 가능한 저장 방법을 확인합니다.
+        Drive 폴더를 확인하려면 공유 주소, 앨범 이름, API key를 넣어주세요.
+      </section>
+
+      <section class="panel summary-panel" aria-labelledby="summary-title">
+        <div class="section-heading">
+          <h2 id="summary-title">Drive 확인 결과</h2>
+          <span class="badge" id="linkType">대기</span>
+        </div>
+        <div class="stats-grid">
+          <div>
+            <span>사진</span>
+            <strong id="imageCount">0</strong>
+          </div>
+          <div>
+            <span>동영상</span>
+            <strong id="videoCount">0</strong>
+          </div>
+          <div>
+            <span>합계</span>
+            <strong id="totalCount">0</strong>
+          </div>
+        </div>
+        <div class="file-list" id="fileList">아직 확인한 파일이 없습니다.</div>
       </section>
 
       <section class="panel result" aria-labelledby="result-title">
         <div class="section-heading">
-          <h2 id="result-title">실행</h2>
-          <span class="badge" id="linkType">대기</span>
+          <h2 id="result-title">아이폰 실행</h2>
+          <span class="badge muted" id="payloadState">미생성</span>
         </div>
 
         <div class="button-grid">
@@ -72,20 +100,33 @@
         </div>
       </section>
 
+      <section class="panel compare" aria-labelledby="compare-title">
+        <h2 id="compare-title">다운로드 개수 비교</h2>
+        <label class="field">
+          <span>아이폰에 저장 완료된 개수</span>
+          <input id="savedCount" type="number" min="0" inputmode="numeric" placeholder="단축어 완료 후 성공 개수" />
+        </label>
+        <div class="actions">
+          <button class="primary" id="compareButton" type="button">비교하기</button>
+          <button class="secondary" id="copyCallbackButton" type="button" disabled>콜백 주소 복사</button>
+        </div>
+        <p class="compare-result" id="compareResult">Drive 확인 후 성공 개수를 입력하면 차이를 계산합니다.</p>
+      </section>
+
       <section class="panel checklist" aria-labelledby="shortcut-title">
-        <h2 id="shortcut-title">아이폰 단축어 준비</h2>
+        <h2 id="shortcut-title">단축어가 해야 할 일</h2>
         <ol>
-          <li>단축어 앱에서 <strong>Drive Album Save</strong>라는 새 단축어를 만듭니다.</li>
-          <li>입력값을 텍스트로 받고, JSON에서 <strong>albumName</strong>과 <strong>url</strong>을 읽습니다.</li>
-          <li>URL의 파일을 가져온 뒤 사진 앱에 저장하고, 해당 앨범에 추가하도록 구성합니다.</li>
+          <li>`Drive Album Save` 단축어가 입력 JSON의 `files` 목록을 반복합니다.</li>
+          <li>각 파일의 `downloadUrl`을 가져와 사진 앱에 저장하고 `albumName` 앨범에 추가합니다.</li>
+          <li>성공한 파일 수를 세고, 마지막에 웹페이지 콜백 주소를 열면 자동 비교됩니다.</li>
         </ol>
         <p>
-          Google Drive 폴더 전체 자동 저장은 공유 권한, 로그인, 파일 수에 따라 막힐 수 있습니다.
-          가장 안정적인 방식은 Drive 폴더를 ZIP으로 받은 뒤 단축어에서 사진/영상을 골라 저장하는 흐름입니다.
+          공유 폴더가 비공개이거나 회사 계정 로그인으로만 보이면 API key만으로는 목록 확인이 안 됩니다.
+          그 경우에는 Google OAuth 또는 별도 서버가 필요합니다.
         </p>
       </section>
     </main>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=5"></script>
   </body>
 </html>

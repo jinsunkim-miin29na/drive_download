@@ -1,4 +1,4 @@
-const CACHE_NAME = "drive-album-helper-v2";
+const CACHE_NAME = "drive-album-helper-v3";
 const ASSETS = [
   "./",
   "./index.html",

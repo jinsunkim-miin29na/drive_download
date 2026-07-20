@@ -147,6 +147,10 @@ input:focus {
   margin-top: 14px;
 }
 
+.actions.three {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
 button,
 .link-button {
   min-height: 48px;
@@ -218,6 +222,81 @@ button:disabled,
   font-weight: 800;
 }
 
+.badge.muted {
+  color: var(--muted);
+  background: #ece7dc;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.stats-grid div {
+  min-height: 78px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf8;
+}
+
+.stats-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.stats-grid strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 1.7rem;
+}
+
+.file-list {
+  max-height: 260px;
+  margin-top: 12px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf8;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.file-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.file-row:last-child {
+  border-bottom: 0;
+}
+
+.file-row span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-row small {
+  color: var(--blue);
+  font-weight: 800;
+}
+
+.file-row.more {
+  display: block;
+  color: var(--muted);
+  font-weight: 800;
+}
+
 .payload-box {
   margin-top: 14px;
   border: 1px solid var(--line);
@@ -257,8 +336,15 @@ pre {
   line-height: 1.55;
 }
 
+.compare-result {
+  margin: 12px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 @media (max-width: 420px) {
   .actions,
+  .actions.three,
   .button-grid {
     grid-template-columns: 1fr;
   }

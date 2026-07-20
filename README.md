@@ -1,14 +1,21 @@
-# Drive Album Helper
+# Drive Save
 
-iPhone Safari에서 Google Drive 공유 링크와 앨범 이름을 iOS 단축어로 넘기기 위한 정적 웹앱입니다.
+iPhone Safari에서 Google Drive 공유 링크를 확인하고, iOS 단축어로 사진/동영상 다운로드 목록을 넘기는 정적 웹앱입니다.
 
-## 왜 단축어가 필요한가요?
+## 현재 지원하는 흐름
 
-웹페이지는 iOS 사진 앱의 앨범을 직접 만들거나 특정 앨범에 사진/영상을 자동 저장할 권한이 없습니다. 이 앱은 Drive 링크를 정리하고 `Drive Album Save`라는 iOS 단축어로 JSON 입력을 넘깁니다. 실제 사진 앱 저장은 단축어에서 처리합니다.
+1. Google Drive 공유 URL을 입력합니다.
+2. 저장할 사진 앱 앨범 이름을 입력합니다.
+3. 폴더 링크인 경우 Google Drive API key로 폴더 안 사진/동영상 목록을 조회합니다.
+4. Drive 기준 사진 개수, 동영상 개수, 합계를 표시합니다.
+5. iOS 단축어 `Drive Album Save`로 `files`, `albumName`, `expectedCount`가 들어간 JSON을 넘깁니다.
+6. 단축어 완료 후 저장 성공 개수를 입력하거나 콜백 URL을 열어 Drive 기준 개수와 비교합니다.
 
-## 배포
+## 중요한 제한
 
-이 저장소는 빌드 과정이 없습니다. GitHub Pages에서 루트 폴더를 배포하면 됩니다.
+웹페이지는 iOS 사진 앱 앨범을 직접 만들거나, 사진/동영상을 특정 앨범에 조용히 저장할 권한이 없습니다. 실제 다운로드와 앨범 저장은 iOS 단축어가 처리해야 합니다.
+
+공유 폴더가 비공개이거나 Google 로그인 후에만 보이면 API key만으로 파일 목록을 읽을 수 없습니다. 이 경우 Google OAuth 로그인 또는 별도 서버가 필요합니다.
 
 ## 단축어 입력 예시
 
@@ -16,21 +23,37 @@ iPhone Safari에서 Google Drive 공유 링크와 앨범 이름을 iOS 단축어
 {
   "albumName": "2026 여름 여행",
   "source": "google-drive",
-  "type": "file",
-  "id": "DRIVE_FILE_ID",
-  "url": "https://drive.google.com/file/d/DRIVE_FILE_ID/view",
-  "openUrl": "https://drive.google.com/uc?export=download&id=DRIVE_FILE_ID",
-  "createdAt": "2026-07-20T00:00:00.000Z"
+  "type": "folder",
+  "folderId": "DRIVE_FOLDER_ID",
+  "expectedCount": 42,
+  "mediaSummary": {
+    "imageCount": 35,
+    "videoCount": 7,
+    "totalCount": 42
+  },
+  "files": [
+    {
+      "id": "DRIVE_FILE_ID",
+      "name": "IMG_0001.JPG",
+      "mimeType": "image/jpeg",
+      "kind": "image",
+      "downloadUrl": "https://www.googleapis.com/drive/v3/files/DRIVE_FILE_ID?alt=media&key=API_KEY"
+    }
+  ],
+  "callbackUrl": "https://example.com/?expected=42&album=2026%20여름%20여행&saved={SAVED_COUNT}"
 }
 ```
 
-## 권장 단축어 구성
+## 단축어 구성 기준
 
 1. 단축어 이름을 `Drive Album Save`로 만듭니다.
-2. 단축어 입력을 텍스트로 받습니다.
-3. 입력 JSON에서 `albumName`, `type`, `openUrl`, `url`을 읽습니다.
-4. URL 콘텐츠를 가져옵니다.
-5. 파일이 ZIP이면 압축을 풀고 이미지/영상을 필터링합니다.
-6. 사진 앱에 저장한 뒤 `albumName` 앨범에 추가합니다.
+2. 텍스트 입력으로 JSON을 받습니다.
+3. JSON의 `files`를 반복합니다.
+4. 각 파일의 `downloadUrl` 콘텐츠를 가져옵니다.
+5. 사진 앱에 저장하고 `albumName` 앨범에 추가합니다.
+6. 성공한 개수를 셉니다.
+7. 마지막에 `callbackUrl`의 `{SAVED_COUNT}`를 성공 개수로 바꾼 뒤 URL을 열면 웹페이지가 비교 결과를 보여줍니다.
 
-Google Drive 공유 폴더 전체 자동 다운로드는 로그인, 파일 수, 공유 권한에 따라 제한될 수 있습니다. 가장 안정적인 운영 방식은 Drive에서 폴더를 ZIP으로 내려받게 한 뒤 단축어가 사진/영상만 골라 앨범에 넣는 흐름입니다.
+## 배포
+
+빌드 과정은 없습니다. GitHub Pages에서 저장소 루트를 배포하면 됩니다.
