@@ -302,6 +302,22 @@ button:disabled,
   font-weight: 800;
 }
 
+.file-row.is-done {
+  background: rgba(31, 122, 92, 0.08);
+}
+
+.file-row.is-done small {
+  color: var(--green);
+}
+
+.file-row.is-pending {
+  background: rgba(161, 60, 50, 0.06);
+}
+
+.file-row.is-pending small {
+  color: var(--danger);
+}
+
 .file-row.more {
   display: block;
   color: var(--muted);

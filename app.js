@@ -108,7 +108,10 @@ function saveState() {
 
 function restoreState() {
   const saved = localStorage.getItem(STORAGE_KEY);
+  const progress = readProgress();
+  const restoredStart = progress.lastSaved ? String(progress.lastSaved + 1) : "1";
   if (!saved) {
+    els.batchStart.value = restoredStart;
     els.clientId.value = DEFAULT_CLIENT_ID;
     return;
   }
@@ -117,7 +120,7 @@ function restoreState() {
     const state = JSON.parse(saved);
     els.driveLink.value = state.driveLink || "";
     els.albumName.value = state.albumName || "";
-    els.batchStart.value = state.batchStart || "1";
+    els.batchStart.value = progress.lastSaved ? restoredStart : state.batchStart || "1";
     els.batchSize.value = state.batchSize || "50";
     els.clientId.value = DEFAULT_CLIENT_ID;
   } catch {
@@ -138,6 +141,8 @@ function summarizeFiles(files) {
 
 function renderFiles(files) {
   const summary = summarizeFiles(files);
+  const progress = readProgress();
+  const lastSaved = Number(progress.lastSaved || 0);
   els.imageCount.textContent = String(summary.imageCount);
   els.videoCount.textContent = String(summary.videoCount);
   els.totalCount.textContent = String(summary.totalCount);
@@ -147,25 +152,18 @@ function renderFiles(files) {
     return;
   }
 
-  const visibleFiles = files.slice(0, 30);
-  const overflow = files.length - visibleFiles.length;
   els.fileList.innerHTML = "";
 
-  for (const file of visibleFiles) {
+  for (const [index, file] of files.entries()) {
+    const number = index + 1;
+    const isDone = number <= lastSaved;
     const row = document.createElement("div");
-    row.className = "file-row";
+    row.className = `file-row ${isDone ? "is-done" : "is-pending"}`;
     row.innerHTML = `
-      <span>${escapeHtml(file.name)}</span>
-      <small>${file.mimeType?.startsWith(IMAGE_PREFIX) ? "사진" : "동영상"}</small>
+      <span>${number}. ${escapeHtml(file.name)}</span>
+      <small>${isDone ? "완료" : "미완료"} · ${file.mimeType?.startsWith(IMAGE_PREFIX) ? "사진" : "동영상"}</small>
     `;
     els.fileList.appendChild(row);
-  }
-
-  if (overflow > 0) {
-    const more = document.createElement("div");
-    more.className = "file-row more";
-    more.textContent = `외 ${overflow}개 더 있음`;
-    els.fileList.appendChild(more);
   }
 
   updateBatchStatus();
@@ -591,6 +589,8 @@ function compareCounts() {
     writeProgress(lastSaved);
     els.compareResult.textContent = `일치합니다. 이번 묶음 ${expected}개 중 ${saved}개 저장 완료. ${lastSaved}번까지 받았습니다.`;
     els.batchStart.value = String(Math.min(lastSaved + 1, Math.max(batch.total, lastSaved + 1)));
+    saveState();
+    renderFiles(driveFiles);
     updateBatchStatus();
     return;
   }
@@ -600,6 +600,8 @@ function compareCounts() {
   const lastSaved = saved > 0 ? batch.start + saved - 1 : batch.start - 1;
   if (saved > 0) writeProgress(lastSaved);
   els.compareResult.textContent = `차이가 있습니다. 이번 묶음 ${expected}개 중 ${saved}개 저장, 미저장 추정 ${missing}개입니다. ${lastSaved}번까지 받은 것으로 기록했습니다.`;
+  saveState();
+  renderFiles(driveFiles);
   updateBatchStatus();
 }
 
