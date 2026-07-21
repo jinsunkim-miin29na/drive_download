@@ -156,7 +156,7 @@ function renderFiles(files) {
 
   for (const [index, file] of files.entries()) {
     const number = index + 1;
-    const isDone = number <= lastSaved;
+    const isDone = number <= lastSaved || isCompletedFile(file);
     const row = document.createElement("div");
     row.className = `file-row ${isDone ? "is-done" : "is-pending"}`;
     row.innerHTML = `
@@ -182,6 +182,7 @@ function mediaFileFromDrive(file) {
     id: file.id,
     name: file.name,
     mimeType: file.mimeType,
+    size: file.size || "",
     kind: file.mimeType?.startsWith(IMAGE_PREFIX) ? "image" : "video",
     downloadUrl: `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`,
     authorizationHeader: "Bearer {ACCESS_TOKEN}",
@@ -209,7 +210,25 @@ function getBatchSettings() {
 function getBatchFiles() {
   if (!driveFiles.length) return [];
   const batch = getBatchSettings();
-  return driveFiles.slice(batch.zeroStart, batch.zeroEnd);
+  return driveFiles
+    .slice(batch.zeroStart, batch.zeroEnd)
+    .filter((file) => !isCompletedFile(file));
+}
+
+function fileKey(file) {
+  return `${file.name || ""}|${file.size || ""}|${file.mimeType || ""}`;
+}
+
+function completedIdSet() {
+  return new Set(readProgress().completedIds || []);
+}
+
+function completedKeySet() {
+  return new Set(readProgress().completedKeys || []);
+}
+
+function isCompletedFile(file) {
+  return completedIdSet().has(file.id) || completedKeySet().has(fileKey(file));
 }
 
 function updateBatchStatus() {
@@ -223,9 +242,11 @@ function updateBatchStatus() {
   }
 
   const batch = getBatchSettings();
+  const skipped = driveFiles.slice(batch.zeroStart, batch.zeroEnd).filter(isCompletedFile).length;
+  const pending = getBatchFiles().length;
   els.batchStart.value = String(batch.start);
   els.batchSize.value = String(batch.size);
-  els.batchStatus.textContent = `이번 묶음: ${batch.start}~${batch.end}번 / 전체 ${batch.total}개`;
+  els.batchStatus.textContent = `이번 묶음: ${batch.start}~${batch.end}번 / 전체 ${batch.total}개 · 제외 ${skipped}개 · 실행 ${pending}개`;
   els.progressResult.textContent = progress.lastSaved
     ? `저장 완료 기록: ${progress.lastSaved}번까지. 다음 시작 추천: ${Math.min(progress.lastSaved + 1, batch.total)}번`
     : "아직 저장 완료 위치가 없습니다.";
@@ -240,8 +261,23 @@ function readProgress() {
 }
 
 function writeProgress(lastSaved) {
+  writeProgressFiles(lastSaved, []);
+}
+
+function writeProgressFiles(lastSaved, completedFiles) {
+  const current = readProgress();
+  const completedIds = new Set(current.completedIds || []);
+  const completedKeys = new Set(current.completedKeys || []);
+
+  for (const file of completedFiles) {
+    if (file.id) completedIds.add(file.id);
+    completedKeys.add(fileKey(file));
+  }
+
   localStorage.setItem(PROGRESS_KEY, JSON.stringify({
-    lastSaved,
+    lastSaved: Math.max(Number(current.lastSaved || 0), Number(lastSaved || 0)),
+    completedIds: [...completedIds],
+    completedKeys: [...completedKeys],
     updatedAt: new Date().toISOString(),
   }));
 }
@@ -586,7 +622,7 @@ function compareCounts() {
   if (saved === expected) {
     const batch = payload?.batch || getBatchSettings();
     const lastSaved = batch.start + saved - 1;
-    writeProgress(lastSaved);
+    writeProgressFiles(lastSaved, (payload?.files || getBatchFiles()).slice(0, saved));
     els.compareResult.textContent = `일치합니다. 이번 묶음 ${expected}개 중 ${saved}개 저장 완료. ${lastSaved}번까지 받았습니다.`;
     els.batchStart.value = String(Math.min(lastSaved + 1, Math.max(batch.total, lastSaved + 1)));
     saveState();
@@ -598,7 +634,7 @@ function compareCounts() {
   const missing = expected - saved;
   const batch = payload?.batch || getBatchSettings();
   const lastSaved = saved > 0 ? batch.start + saved - 1 : batch.start - 1;
-  if (saved > 0) writeProgress(lastSaved);
+  if (saved > 0) writeProgressFiles(lastSaved, (payload?.files || getBatchFiles()).slice(0, saved));
   els.compareResult.textContent = `차이가 있습니다. 이번 묶음 ${expected}개 중 ${saved}개 저장, 미저장 추정 ${missing}개입니다. ${lastSaved}번까지 받은 것으로 기록했습니다.`;
   saveState();
   renderFiles(driveFiles);
