@@ -565,13 +565,14 @@ function runShortcut() {
 }
 
 function buildShortcutUrl(input, text = "") {
-  const shortcutUrl = new URL("shortcuts://run-shortcut");
-  shortcutUrl.searchParams.set("name", SHORTCUT_NAME);
-  shortcutUrl.searchParams.set("input", input);
+  const params = [
+    `name=${encodeURIComponent(SHORTCUT_NAME)}`,
+    `input=${encodeURIComponent(input)}`,
+  ];
   if (input === "text") {
-    shortcutUrl.searchParams.set("text", text);
+    params.push(`text=${encodeURIComponent(text)}`);
   }
-  return shortcutUrl;
+  return `shortcuts://run-shortcut?${params.join("&")}`;
 }
 
 function compareCounts() {
