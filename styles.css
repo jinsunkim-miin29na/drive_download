@@ -233,6 +233,17 @@ button:disabled,
   gap: 8px;
 }
 
+.batch-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.field.compact {
+  margin-top: 0;
+}
+
 .stats-grid div {
   min-height: 78px;
   padding: 12px;
@@ -371,6 +382,7 @@ pre {
 @media (max-width: 420px) {
   .actions,
   .actions.three,
+  .batch-grid,
   .button-grid {
     grid-template-columns: 1fr;
   }

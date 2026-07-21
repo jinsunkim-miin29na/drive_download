@@ -12,7 +12,11 @@ const els = {
   copyCallbackButton: document.querySelector("#copyCallbackButton"),
   compareButton: document.querySelector("#compareButton"),
   savedCount: document.querySelector("#savedCount"),
+  batchStart: document.querySelector("#batchStart"),
+  batchSize: document.querySelector("#batchSize"),
+  batchStatus: document.querySelector("#batchStatus"),
   compareResult: document.querySelector("#compareResult"),
+  progressResult: document.querySelector("#progressResult"),
   downloadLink: document.querySelector("#downloadLink"),
   payloadPreview: document.querySelector("#payloadPreview"),
   statusStrip: document.querySelector("#statusStrip"),
@@ -26,6 +30,7 @@ const els = {
 
 const SHORTCUT_NAME = "Drive Album Save";
 const STORAGE_KEY = "drive-save-state";
+const PROGRESS_KEY = "drive-save-progress";
 const IMAGE_PREFIX = "image/";
 const VIDEO_PREFIX = "video/";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
@@ -95,6 +100,8 @@ function saveState() {
   const state = {
     driveLink: els.driveLink.value,
     albumName: els.albumName.value,
+    batchStart: els.batchStart.value,
+    batchSize: els.batchSize.value,
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
@@ -110,6 +117,8 @@ function restoreState() {
     const state = JSON.parse(saved);
     els.driveLink.value = state.driveLink || "";
     els.albumName.value = state.albumName || "";
+    els.batchStart.value = state.batchStart || "1";
+    els.batchSize.value = state.batchSize || "50";
     els.clientId.value = DEFAULT_CLIENT_ID;
   } catch {
     localStorage.removeItem(STORAGE_KEY);
@@ -158,6 +167,8 @@ function renderFiles(files) {
     more.textContent = `외 ${overflow}개 더 있음`;
     els.fileList.appendChild(more);
   }
+
+  updateBatchStatus();
 }
 
 function escapeHtml(value) {
@@ -178,6 +189,71 @@ function mediaFileFromDrive(file) {
     authorizationHeader: "Bearer {ACCESS_TOKEN}",
     webViewLink: file.webViewLink,
   };
+}
+
+function getBatchSettings() {
+  const total = driveFiles.length;
+  const rawStart = Number.parseInt(els.batchStart.value, 10);
+  const rawSize = Number.parseInt(els.batchSize.value, 10);
+  const start = Math.min(Math.max(Number.isFinite(rawStart) ? rawStart : 1, 1), Math.max(total, 1));
+  const size = Math.min(Math.max(Number.isFinite(rawSize) ? rawSize : 50, 1), 200);
+  const end = Math.min(start + size - 1, total);
+  return {
+    start,
+    size,
+    end,
+    total,
+    zeroStart: start - 1,
+    zeroEnd: end,
+  };
+}
+
+function getBatchFiles() {
+  if (!driveFiles.length) return [];
+  const batch = getBatchSettings();
+  return driveFiles.slice(batch.zeroStart, batch.zeroEnd);
+}
+
+function updateBatchStatus() {
+  const progress = readProgress();
+  if (!driveFiles.length) {
+    els.batchStatus.textContent = "Drive 확인 후 이번 묶음 범위를 표시합니다.";
+    els.progressResult.textContent = progress.lastSaved
+      ? `이전에 ${progress.lastSaved}번까지 저장했다고 기록되어 있습니다.`
+      : "아직 저장 완료 위치가 없습니다.";
+    return;
+  }
+
+  const batch = getBatchSettings();
+  els.batchStart.value = String(batch.start);
+  els.batchSize.value = String(batch.size);
+  els.batchStatus.textContent = `이번 묶음: ${batch.start}~${batch.end}번 / 전체 ${batch.total}개`;
+  els.progressResult.textContent = progress.lastSaved
+    ? `저장 완료 기록: ${progress.lastSaved}번까지. 다음 시작 추천: ${Math.min(progress.lastSaved + 1, batch.total)}번`
+    : "아직 저장 완료 위치가 없습니다.";
+}
+
+function readProgress() {
+  try {
+    return JSON.parse(localStorage.getItem(PROGRESS_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function writeProgress(lastSaved) {
+  localStorage.setItem(PROGRESS_KEY, JSON.stringify({
+    lastSaved,
+    updatedAt: new Date().toISOString(),
+  }));
+}
+
+function suggestNextBatchStart() {
+  const progress = readProgress();
+  if (!progress.lastSaved) return;
+  const next = Math.min(progress.lastSaved + 1, Math.max(driveFiles.length, progress.lastSaved + 1));
+  els.batchStart.value = String(next);
+  updateBatchStatus();
 }
 
 function waitForGoogleIdentity() {
@@ -309,6 +385,7 @@ async function scanDrive() {
     els.totalCount.textContent = "1";
     els.fileList.textContent = "단일 파일 링크입니다. 사진/동영상 여부는 단축어 다운로드 단계에서 확인합니다.";
     setStatus("단일 파일 링크입니다. 폴더 개수 확인 없이 단축어로 넘길 수 있습니다.");
+    updateBatchStatus();
     return;
   }
 
@@ -323,6 +400,7 @@ async function scanDrive() {
   try {
     driveFiles = await fetchDriveFolderFiles(driveInfo.id);
     renderFiles(driveFiles);
+    suggestNextBatchStart();
     const summary = summarizeFiles(driveFiles);
     setStatus(`Drive 폴더에서 사진 ${summary.imageCount}개, 동영상 ${summary.videoCount}개를 찾았습니다.`);
   } catch (error) {
@@ -361,7 +439,10 @@ function buildPayload() {
   els.linkType.textContent = driveInfo.type === "folder" ? "폴더" : driveInfo.type === "file" ? "파일" : "링크";
 
   const summary = summarizeFiles(driveFiles);
-  const expectedCount = driveInfo.type === "folder" ? summary.totalCount : Math.max(driveFiles.length, 1);
+  const batch = getBatchSettings();
+  const selectedFiles = getBatchFiles();
+  const selectedSummary = summarizeFiles(selectedFiles);
+  const expectedCount = driveInfo.type === "folder" ? selectedFiles.length : Math.max(selectedFiles.length, 1);
 
   return {
     albumName,
@@ -372,8 +453,15 @@ function buildPayload() {
     url: driveInfo.url,
     openUrl: driveInfo.openUrl,
     expectedCount,
-    mediaSummary: summary,
-    files: driveFiles,
+    mediaSummary: selectedSummary,
+    totalMediaSummary: summary,
+    batch: {
+      start: batch.start,
+      end: batch.end,
+      size: batch.size,
+      total: batch.total,
+    },
+    files: selectedFiles,
     accessToken,
     authorizationHeader: accessToken ? `Bearer ${accessToken}` : "",
     callbackUrl: makeCallbackUrl(expectedCount, albumName),
@@ -423,7 +511,11 @@ function prepare() {
     return;
   }
 
-  setStatus(`단축어에 넘길 목록을 만들었습니다. 예상 다운로드 개수는 ${payload.expectedCount}개입니다.`);
+  if (payload.batch) {
+    setStatus(`이번 묶음 ${payload.batch.start}~${payload.batch.end}번, ${payload.expectedCount}개를 단축어에 넘깁니다.`);
+  } else {
+    setStatus(`단축어에 넘길 목록을 만들었습니다. 예상 다운로드 개수는 ${payload.expectedCount}개입니다.`);
+  }
 }
 
 async function pasteFromClipboard() {
@@ -493,12 +585,21 @@ function compareCounts() {
   }
 
   if (saved === expected) {
-    els.compareResult.textContent = `일치합니다. Drive 기준 ${expected}개, 아이폰 저장 ${saved}개입니다.`;
+    const batch = payload?.batch || getBatchSettings();
+    const lastSaved = batch.start + saved - 1;
+    writeProgress(lastSaved);
+    els.compareResult.textContent = `일치합니다. 이번 묶음 ${expected}개 중 ${saved}개 저장 완료. ${lastSaved}번까지 받았습니다.`;
+    els.batchStart.value = String(Math.min(lastSaved + 1, Math.max(batch.total, lastSaved + 1)));
+    updateBatchStatus();
     return;
   }
 
   const missing = expected - saved;
-  els.compareResult.textContent = `차이가 있습니다. Drive 기준 ${expected}개, 아이폰 저장 ${saved}개, 미저장 추정 ${missing}개입니다.`;
+  const batch = payload?.batch || getBatchSettings();
+  const lastSaved = saved > 0 ? batch.start + saved - 1 : batch.start - 1;
+  if (saved > 0) writeProgress(lastSaved);
+  els.compareResult.textContent = `차이가 있습니다. 이번 묶음 ${expected}개 중 ${saved}개 저장, 미저장 추정 ${missing}개입니다. ${lastSaved}번까지 받은 것으로 기록했습니다.`;
+  updateBatchStatus();
 }
 
 function applyCallbackParams() {
@@ -519,6 +620,8 @@ function clearAll() {
   els.albumName.value = "";
   els.clientId.value = DEFAULT_CLIENT_ID;
   els.savedCount.value = "";
+  els.batchStart.value = "1";
+  els.batchSize.value = "50";
   driveFiles = [];
   driveInfo = null;
   accessToken = "";
@@ -528,8 +631,10 @@ function clearAll() {
   renderFiles([]);
   updatePayload(null);
   localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(PROGRESS_KEY);
   setStatus("Drive 폴더를 확인하려면 공유 주소, 앨범 이름, OAuth Client ID를 넣고 Google 로그인을 해주세요.");
   els.compareResult.textContent = "Drive 확인 후 성공 개수를 입력하면 차이를 계산합니다.";
+  els.progressResult.textContent = "아직 저장 완료 위치가 없습니다.";
 }
 
 els.loginButton.addEventListener("click", loginGoogle);
@@ -544,6 +649,14 @@ els.clearButton.addEventListener("click", clearAll);
 els.driveLink.addEventListener("input", saveState);
 els.albumName.addEventListener("input", saveState);
 els.clientId.addEventListener("input", saveState);
+els.batchStart.addEventListener("input", () => {
+  saveState();
+  updateBatchStatus();
+});
+els.batchSize.addEventListener("input", () => {
+  saveState();
+  updateBatchStatus();
+});
 
 restoreState();
 applyCallbackParams();

@@ -95,6 +95,18 @@
           <span class="badge muted" id="payloadState">미생성</span>
         </div>
 
+        <div class="batch-grid">
+          <label class="field compact">
+            <span>시작 번호</span>
+            <input id="batchStart" type="number" min="1" inputmode="numeric" value="1" />
+          </label>
+          <label class="field compact">
+            <span>묶음 크기</span>
+            <input id="batchSize" type="number" min="1" max="200" inputmode="numeric" value="50" />
+          </label>
+        </div>
+        <p class="compare-result" id="batchStatus">Drive 확인 후 이번 묶음 범위를 표시합니다.</p>
+
         <div class="button-grid">
           <button id="shortcutButton" class="primary" type="button" disabled>단축어 실행</button>
           <a class="secondary link-button" href="shortcuts://open-shortcut?name=Drive%20Album%20Save">단축어 확인</a>
@@ -120,6 +132,7 @@
           <button class="secondary" id="copyCallbackButton" type="button" disabled>콜백 주소 복사</button>
         </div>
         <p class="compare-result" id="compareResult">Drive 확인 후 성공 개수를 입력하면 차이를 계산합니다.</p>
+        <p class="compare-result" id="progressResult">아직 저장 완료 위치가 없습니다.</p>
       </section>
 
       <section class="panel checklist" aria-labelledby="shortcut-title">
@@ -137,6 +150,6 @@
     </main>
 
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="app.js?v=11"></script>
+    <script src="app.js?v=12"></script>
   </body>
 </html>
